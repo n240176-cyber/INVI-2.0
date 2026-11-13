@@ -5,7 +5,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Hardware Timeout Threshold (Increased to 45s to prevent false offline disconnects)
+// Hardware Timeout Threshold (45s to prevent false offline disconnects)
 let deviceHeartbeatTimeoutSec = 45; 
 
 // In-Memory Real-Time State for the 5 Exam Halls
@@ -17,7 +17,7 @@ let halls = [
     { id: 'HALL-G-05', wing: 'Central Wing, Level 3', status: 'Offline', assigned: false, assignment: null, logs: [], isInvigilatorPresent: false, lastHeartbeat: 0, manualOverride: false, beaconSignalStartTime: null }
 ];
 
-// Helper to find hall flexibly ('HALL-G-01', 'Hall 1', etc.)
+// Helper to find hall flexibly
 function findHall(hallId) {
     if (!hallId) return null;
     const cleanSearch = hallId.toString().toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -45,13 +45,13 @@ setInterval(() => {
     });
 }, 3000);
 
-// Background job: Automatically clear expired exams and preserve logs
+// Background job: Automatically clear expired exams and cleanly reset status
 setInterval(() => {
     const now = new Date();
     halls.forEach(hall => {
         if (hall.assigned && hall.assignment) {
             const [year, month, day] = hall.assignment.date.split('-').map(Number);
-            const [h, m] = hall.assignment.time.split(':').map(Number);
+            const [h, m] = hall.assignment.time.split('-')[0].split(':').map(Number); // Safe time split
             const examStart = new Date(year, month - 1, day, h, m, 0);
             const durationMins = Number(hall.assignment.duration) || 180;
             const examEnd = new Date(examStart.getTime() + durationMins * 60 * 1000);
@@ -66,7 +66,7 @@ setInterval(() => {
                 hall.status = hall.status === 'Offline' ? 'Offline' : 'Online';
                 
                 hall.logs.unshift({
-                    message: `Exam finished. Assignment for ${prevInvig} automatically cleared. Hall returned to Online.`,
+                    message: `Exam finished. Assignment for ${prevInvig} cleared. Hall returned to ${hall.status}.`,
                     time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 });
             }
@@ -147,8 +147,9 @@ app.post('/api/hall/:hallId/cancel', (req, res) => {
     hall.manualOverride = false;
     hall.beaconSignalStartTime = null;
     hall.status = hall.status === 'Offline' ? 'Offline' : 'Online';
+    
     hall.logs.unshift({
-        message: `Assignment for ${prevInvig} cancelled by coordinator.`,
+        message: `Assignment for ${prevInvig} cancelled. Hall returned to ${hall.status}.`,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     });
 

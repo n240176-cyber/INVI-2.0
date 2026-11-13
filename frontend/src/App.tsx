@@ -250,16 +250,16 @@ export default function App() {
 
         <div className="space-y-4">
           {halls.map((hall) => {
-            let badgeStatus = 'Sensor Offline';
-            if (hall.status !== 'Offline') {
-              if (!hall.assigned) {
-                badgeStatus = 'Unassigned';
-              } else {
-                badgeStatus = hall.isInvigilatorPresent ? 'Present' : 'Waiting for Invigilator';
-              }
-            }
-
             const isOffline = hall.status === 'Offline';
+            let badgeStatus = 'Sensor Offline';
+
+            if (isOffline) {
+              badgeStatus = 'Sensor Offline';
+            } else if (!hall.assigned) {
+              badgeStatus = 'Unassigned';
+            } else {
+              badgeStatus = hall.isInvigilatorPresent ? 'Present' : 'Waiting for Invigilator';
+            }
 
             return (
               <div
@@ -277,7 +277,7 @@ export default function App() {
                     <HallStatusBadge status={badgeStatus} />
                   </div>
                   <p className="text-xs text-gray-500 mb-3">{hall.wing}</p>
-                  {hall.assigned && (
+                  {!isOffline && hall.assigned && (
                     <div className="p-2 bg-[#5B1E31]/5 border border-[#5B1E31]/10 rounded-xl inline-block">
                       <span className="text-[10px] font-bold uppercase text-[#5B1E31] block">Status</span>
                       <span className="text-xs font-semibold text-gray-800">Invigilator Assigned</span>
@@ -428,13 +428,14 @@ function RoomManagementModal({ hall, onClose, onOpenAssign }: { hall: any; onClo
     return () => clearInterval(interval);
   }, [hall]);
 
+  const isOffline = hall.status === 'Offline';
   let badgeStatus = 'Sensor Offline';
-  if (hall.status !== 'Offline') {
-    if (!assignmentDetails) {
-      badgeStatus = 'Unassigned';
-    } else {
-      badgeStatus = presenceDetected ? 'Present' : 'Waiting for Invigilator';
-    }
+  if (isOffline) {
+    badgeStatus = 'Sensor Offline';
+  } else if (!assignmentDetails) {
+    badgeStatus = 'Unassigned';
+  } else {
+    badgeStatus = presenceDetected ? 'Present' : 'Waiting for Invigilator';
   }
 
   return (
@@ -478,9 +479,9 @@ function RoomManagementModal({ hall, onClose, onOpenAssign }: { hall: any; onClo
             <div className="bg-gray-50 rounded-xl p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  {hall.status !== 'Offline' ? <Wifi className="w-5 h-5 text-green-600" /> : <WifiOff className="w-5 h-5 text-red-600" />}
+                  {!isOffline ? <Wifi className="w-5 h-5 text-green-600" /> : <WifiOff className="w-5 h-5 text-red-600" />}
                   <span className="text-sm font-medium text-gray-800">
-                    ESP32 Hardware: {hall.status === 'Offline' ? 'Offline' : 'Online'}
+                    ESP32 Hardware: {isOffline ? 'Offline' : 'Online'}
                   </span>
                 </div>
                 <HallStatusBadge status={badgeStatus} />
@@ -515,7 +516,7 @@ function RoomManagementModal({ hall, onClose, onOpenAssign }: { hall: any; onClo
               )}
             </div>
 
-            {assignmentDetails && !presenceDetected && (
+            {assignmentDetails && !presenceDetected && !isOffline && (
               <button
                 onClick={async () => {
                   try {
@@ -534,7 +535,7 @@ function RoomManagementModal({ hall, onClose, onOpenAssign }: { hall: any; onClo
               </button>
             )}
 
-            {hall.status !== 'Offline' && (
+            {!isOffline && (
               <div className="flex gap-2">
                 <button
                   onClick={onOpenAssign}
@@ -556,7 +557,7 @@ function RoomManagementModal({ hall, onClose, onOpenAssign }: { hall: any; onClo
                             setAssignmentDetails(null);
                           }
                         } catch (err) {
-                          console.error('Cancel assignment error:', err);
+                          console.log('Cancel assignment error:', err);
                         }
                       }
                     }}
