@@ -5,8 +5,8 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Hardware Timeout Threshold
-let deviceHeartbeatTimeoutSec = 15; // Seconds before marking ESP32 offline
+// Hardware Timeout Threshold (Increased to 45s to prevent false offline disconnects)
+let deviceHeartbeatTimeoutSec = 45; 
 
 // In-Memory Real-Time State for the 5 Exam Halls
 let halls = [
@@ -173,7 +173,11 @@ app.post('/api/esp32/heartbeat', (req, res) => {
         hall.status = hall.manualOverride ? 'Present' : (hall.assigned ? (hall.isInvigilatorPresent ? 'Present' : 'Waiting for Invigilator') : 'Online');
         hall.logs.unshift({ message: 'ESP32 Hardware connected online.', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
     }
-    res.json({ success: true, assigned: hall.assigned, beaconId: hall.assignment ? hall.assignment.beaconId : null });
+    res.json({ 
+        success: true, 
+        assigned: hall.assigned, 
+        beaconId: hall.assignment ? hall.assignment.beaconId : null 
+    });
 });
 
 app.post('/api/esp32/presence', (req, res) => {

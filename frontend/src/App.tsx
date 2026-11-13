@@ -330,7 +330,7 @@ export default function App() {
               </div>
               <div>
                 <label className="block text-xs font-semibold uppercase text-gray-600 mb-1">BLE Hardware Token ID</label>
-                <input name="beaconId" required type="text" placeholder="e.g. gyyy" className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
+                <input name="beaconId" required type="text" placeholder="e.g. RAM" className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm" />
               </div>
               <div>
                 <label className="block text-xs font-semibold uppercase text-gray-600 mb-1">Examination Name</label>
