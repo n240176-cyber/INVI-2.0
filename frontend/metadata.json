@@ -1,0 +1,6 @@
+{
+  "name": "INVI Examination Monitoring System",
+  "description": "Automated exam security, ESP32 sensor connectivity, BLE token presence verification, and invigilator monitoring system.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
