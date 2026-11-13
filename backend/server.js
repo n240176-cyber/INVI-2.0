@@ -17,6 +17,16 @@ let halls = [
     { id: 'HALL-G-05', wing: 'Central Wing, Level 3', status: 'Offline', assigned: false, assignment: null, logs: [], isInvigilatorPresent: false, lastHeartbeat: 0, manualOverride: false, beaconSignalStartTime: null }
 ];
 
+// Helper to find hall flexibly ('HALL-G-01', 'Hall 1', etc.)
+function findHall(hallId) {
+    if (!hallId) return null;
+    const cleanSearch = hallId.toString().toLowerCase().replace(/[^a-z0-9]/g, '');
+    return halls.find(h => {
+        const cleanId = h.id.toLowerCase().replace(/[^a-z0-9]/g, '');
+        return cleanId === cleanSearch || h.id.toLowerCase() === hallId.toString().toLowerCase();
+    });
+}
+
 // Background job: Check if ESP32 hardware nodes have timed out (Offline detection)
 setInterval(() => {
     const now = Date.now();
@@ -78,7 +88,7 @@ app.post('/api/login', (req, res) => {
 app.get('/api/halls', (req, res) => res.json(halls));
 
 app.get('/api/assignment/:hallId', (req, res) => {
-    const hall = halls.find(h => h.id === req.params.hallId);
+    const hall = findHall(req.params.hallId);
     if (!hall) return res.status(404).json({ assigned: false });
     res.json({
         assigned: hall.assigned,
@@ -90,7 +100,7 @@ app.get('/api/assignment/:hallId', (req, res) => {
 
 app.post('/api/assign', (req, res) => {
     const { hallId, invigilatorName, phone, beaconId, examName, date, time, duration } = req.body;
-    const hall = halls.find(h => h.id === hallId);
+    const hall = findHall(hallId);
 
     if (!hall) return res.status(404).json({ success: false, error: 'Hall not found' });
     if (hall.status === 'Offline') {
@@ -111,7 +121,7 @@ app.post('/api/assign', (req, res) => {
 });
 
 app.post('/api/hall/:hallId/override', (req, res) => {
-    const hall = halls.find(h => h.id === req.params.hallId);
+    const hall = findHall(req.params.hallId);
     if (!hall) return res.status(404).json({ success: false, error: 'Hall not found' });
 
     hall.isInvigilatorPresent = true;
@@ -127,7 +137,7 @@ app.post('/api/hall/:hallId/override', (req, res) => {
 });
 
 app.post('/api/hall/:hallId/cancel', (req, res) => {
-    const hall = halls.find(h => h.id === req.params.hallId);
+    const hall = findHall(req.params.hallId);
     if (!hall) return res.status(404).json({ success: false, error: 'Hall not found' });
 
     const prevInvig = hall.assignment ? hall.assignment.invigilatorName : 'Invigilator';
@@ -146,7 +156,7 @@ app.post('/api/hall/:hallId/cancel', (req, res) => {
 });
 
 app.post('/api/hall/:hallId/clear-logs', (req, res) => {
-    const hall = halls.find(h => h.id === req.params.hallId);
+    const hall = findHall(req.params.hallId);
     if (!hall) return res.status(404).json({ success: false, error: 'Hall not found' });
 
     hall.logs = [];
@@ -155,8 +165,8 @@ app.post('/api/hall/:hallId/clear-logs', (req, res) => {
 
 app.post('/api/esp32/heartbeat', (req, res) => {
     const { hallId } = req.body;
-    const hall = halls.find(h => h.id === hallId);
-    if (!hall) return res.status(404).json({ success: false });
+    const hall = findHall(hallId);
+    if (!hall) return res.status(404).json({ success: false, error: 'Hall not found' });
 
     hall.lastHeartbeat = Date.now();
     if (hall.status === 'Offline') {
@@ -167,16 +177,18 @@ app.post('/api/esp32/heartbeat', (req, res) => {
 });
 
 app.post('/api/esp32/presence', (req, res) => {
-    const { hallId, present } = req.body;
-    const hall = halls.find(h => h.id === hallId);
-    if (!hall) return res.status(404).json({ success: false });
+    const { hallId, present, isInvigilatorPresent } = req.body;
+    const hall = findHall(hallId);
+    if (!hall) return res.status(404).json({ success: false, error: 'Hall not found' });
 
     hall.lastHeartbeat = Date.now();
     if (hall.status === 'Offline') hall.status = 'Online';
 
+    const isPresentFlag = present !== undefined ? present : isInvigilatorPresent;
+
     if (hall.assigned && !hall.manualOverride) {
         const now = Date.now();
-        if (present) {
+        if (isPresentFlag) {
             if (!hall.beaconSignalStartTime) {
                 hall.beaconSignalStartTime = now;
             }
